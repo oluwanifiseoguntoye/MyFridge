@@ -7,7 +7,7 @@ class UserIngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    ingredient = serializers.StringRelatedField()
+    ingredient = UserIngredientSerializer()
 
     class Meta:
         model = RecipeIngredient
@@ -18,4 +18,4 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ['name', 'ingredients']
+        fields = ['recipe', 'ingredients']
