@@ -6,6 +6,8 @@ class UserIngredient(models.Model):
 
 class Recipe(models.Model):
     recipe = models.CharField(max_length=255)
+    description = models.TextField(default='No description available')
+    url = models.URLField(default='No url available')
 
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients')
