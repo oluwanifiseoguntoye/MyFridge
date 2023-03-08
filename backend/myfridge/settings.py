@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'recipesapi',
     'rest_framework',
+    'chatterbot',
 ]
 
 MIDDLEWARE = [
