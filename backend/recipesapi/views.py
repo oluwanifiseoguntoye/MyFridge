@@ -11,6 +11,7 @@ from chatterbot.trainers import ListTrainer
 import nltk 
 import string
 from nltk.tokenize import word_tokenize
+from django.http import JsonResponse
 
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
@@ -84,6 +85,14 @@ class RecipeBot(APIView):
         if filtered_recipes:
             recipe = filtered_recipes[0]
             serializer = RecipeSerializer(recipe)
-            return Response({'message': serializer.data['description']})
+            return JsonResponse(
+                    {
+                        'message': serializer.data['description']
+                    }
+                )
         else:
-            return Response({'message': "I'm sorry, there are currently no recipes available with those ingredients."})
+            return JsonResponse(
+                    {
+                        'message': "I'm sorry, there are currently no recipes available with those ingredients."
+                    }
+                )
