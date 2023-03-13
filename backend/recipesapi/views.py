@@ -9,13 +9,9 @@ from .serializers import RecipeSerializer
 from chatterbot import ChatBot
 from chatterbot.trainers import ListTrainer
 import nltk 
-import string
+import random
 from nltk.tokenize import word_tokenize
 from django.http import JsonResponse
-
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
-
 
 class RecipeFilter(APIView):
     def post(self, request):
@@ -59,14 +55,7 @@ class RecipeBot(APIView):
             for word in words:
                 if word in ingredient_list:
                     ingredients.append(word)
-            print("Input message:", message)
-            print("Tokenized words:", words)
-            print("Ingredients found:", ingredients)
             return ingredients
-
-
-        
-        ingredients = extract_ingredients(message)
         
        # Filter recipes by ingredients
         def filter_recipes_by_ingredients(ingredients):
@@ -74,25 +63,58 @@ class RecipeBot(APIView):
             filtered_recipes = []
             for recipe in recipes:
                 recipe_ingredients = [ri.ingredient.ingredient.lower() for ri in recipe.ingredients.all()]
-                if any(ingredient.lower() in recipe_ingredients for ingredient in ingredients):
+                if all(ingredient.lower() in recipe_ingredients for ingredient in ingredients):
                     filtered_recipes.append(recipe)
-            print(filtered_recipes)
-            return filtered_recipes
-
-        filtered_recipes = filter_recipes_by_ingredients(ingredients)
+            return filtered_recipes      
+        
+        state = 'searching'
+        current_recipe = None
+        filtered_recipes = []
 
         # Return recipe description if recipe found
-        if filtered_recipes:
-            recipe = filtered_recipes[0]
-            serializer = RecipeSerializer(recipe)
-            return JsonResponse(
-                    {
-                        'message': serializer.data['description']
-                    }
-                )
-        else:
-            return JsonResponse(
-                    {
-                        'message': "I'm sorry, there are currently no recipes available with those ingredients."
-                    }
-                )
+        def chatbot_response(state, message, current_recipe, filtered_recipes):
+
+
+            if state == 'searching':
+                ingredients = extract_ingredients(message)
+                filtered_recipes = filter_recipes_by_ingredients(ingredients)
+
+                if len(filtered_recipes) != 0:
+                    print(filtered_recipes)
+                    current_recipe = 0
+                    random.shuffle(filtered_recipes)
+                    current_recipe = filtered_recipes[0]
+                    state = 'next_recipe'
+                    print(state == 'next_recipe')
+                    print('passed')
+                    return state, current_recipe, filtered_recipes, JsonResponse({'message': current_recipe.description + " Here's the recipe's URL for preparation: " + current_recipe.url })
+                
+                # This line will only execute if filtered_recipes is empty
+                print('passed')
+                state = 'no_recipes'
+                return state, current_recipe, filtered_recipes, JsonResponse({'message': "I'm sorry, there are currently no recipes available with those ingredients."})
+            
+            while state == 'next_recipe':
+                    print('not passed')
+                    affirmations = ['yes', 'sure', 'yeah']
+                    negations = ['no', 'nope']
+                    if any(word in message.lower() for word in affirmations):
+                        current_recipe += 1
+                        if current_recipe < len(filtered_recipes):
+                            current_recipe = filtered_recipes[current_recipe]
+                            return state, current_recipe, filtered_recipes, JsonResponse({'message': current_recipe.description + " Here's the recipe's URL for preparation: " + current_recipe.url + " Would you like another recipe instead?"})
+                        else:
+                            state = 'no_more_recipes'
+                            return state, current_recipe, filtered_recipes, JsonResponse({'message': "I'm sorry, there are no more recipes with those ingredients. Enjoy cooking!"})
+                        
+                    elif any(word in message.lower() for word in negations):
+                        state = 'end'
+                        return state, current_recipe, filtered_recipes, JsonResponse({'message': "Okay, enjoy cooking!"})
+                    
+                    state = 'searching'
+                    return state, current_recipe, filtered_recipes, JsonResponse({'message': "I'm sorry, I don't understand. Can you please rephrase your message?"})
+            
+        state, current_recipe, filtered_recipes, response = chatbot_response(state, message, current_recipe, filtered_recipes)
+        return response
+
+    
